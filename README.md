@@ -1,2 +1,2 @@
-# textminingApp
-a App that help people text mining
+# EC-semir 
+a two app that produced in EC-semir
