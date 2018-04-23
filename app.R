@@ -1,7 +1,8 @@
 library(shiny)
 library(stringr)
 library(ggplot2)
-#library(recharts)
+library(devtools)
+library(recharts)
 library(jiebaR)
 #setwd("D:/workspace/BI报表")
 
@@ -13,7 +14,7 @@ ui <- navbarPage('bi',
                           sidebarPanel(
                             
                             # Input: Select a file ----
-                            fileInput("file1", "Choose TXT File",
+                            fileInput("file1", "Choose CSV File",
                                       multiple = TRUE),
                             
                             # Horizontal line ----
@@ -46,13 +47,24 @@ ui <- navbarPage('bi',
                           
                           sidebarPanel(
                           #selectInput('category', 'category',c('短袖' = '短袖','长袖' = '长袖')),
-                          textInput('category', 'category', '短袖'),
+                          textInput('category1', 'category', '短袖'),
+                          #textInput('xplot', 'x = ','平均停留时长'),
+                          #textInput('yplot', 'y = ','下单金额'),
                           submitButton("Submit")
                           ),
                           
                           mainPanel(output_echart('plot1',height = "800px"))
+                          
+                          
                  
-                 )       
+                 ),
+                 tabPanel('gauge',
+                          
+                          mainPanel(output_echart('plot2',height = "800px"),width = "200%")
+                          
+                          
+                          
+                 )
 )
 
 server <- function(input, output) {
@@ -85,20 +97,37 @@ server <- function(input, output) {
   
   output$plot1 <- render_echart({
     req(input$file1)
-     df <- read.csv(input$file1$datapath,
+    
+     mydata <- read.csv(input$file1$datapath,
                      header = input$header)
+     
       mydata$详情页跳出率 <- mydata$详情页跳出率 %>% str_remove('%') %>% as.numeric()
       mydata$下单转化率 <- mydata$下单转化率 %>% str_remove('%') %>% as.numeric()
       mydata$详情页跳出率 <- mydata$详情页跳出率 %>% str_remove('%') %>% as.numeric()
       mydata$支付转化率 <- mydata$支付转化率 %>% str_remove('%') %>% as.numeric()
-      mydata$点击转化率 <- mydata$点击转化率 %>% str_remove('%') %>% as.numeric()
+      mydata$点击率 <- mydata$点击率 %>% str_remove('%') %>% as.numeric()
       mydata$下单支付转化率 <- mydata$下单支付转化率 %>% str_remove('%') %>% as.numeric()
       mydata$搜索支付转化率 <- mydata$搜索支付转化率 %>% str_remove('%') %>% as.numeric()
    
-      d1 <- mydata[mydata$商品标题 %>% str_detect(input$category),]
-      m1 <- table(d1$浏览量)
-      echartr(d1[order(d1$支付买家数),],x = 客单价 ,y = 浏览量, t = 支付买家数, type = 'scatter')
+      d1 <- mydata[mydata$商品标题 %>% str_detect(input$category1),]
+      #m1 <- table(d1$浏览量)
+      echartr(d1[order(d1$支付买家数),],x = 平均停留时长,y = 下单金额 , t = 商品在线状态, type = 'scatter')
       
+  }
+  )
+  
+  output$plot2 <- render_echart({
+    req(input$file1)
+    
+    mydata <- read.csv(input$file1$datapath,
+                       header = input$header)
+    
+    m1 <- as.character(mydata$商品标题)
+    engine1 <- worker()
+    m2 <- segment(m1,engine1)
+    m3 <- as.data.frame(table(m2))
+    m4 <- m3[m3$m2 %>% str_detect('\\D'),]
+    echartr(m4, m2 , Freq, type = 'wordCloud')
   }
   )
   
